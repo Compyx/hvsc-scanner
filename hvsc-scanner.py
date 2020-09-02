@@ -191,6 +191,7 @@ class HVSCReader(dict):
 
         return True
 
+
     def print_sid(self, p):
         sid = self._sids[p]
         print("${:04x}-${:04x}\t{}".format(
@@ -216,6 +217,16 @@ class HVSCReader(dict):
                 self.print_sid(p)
 
 
+    def dump_sid_info(self, args):
+        """
+        Dump info an a sid file
+        """
+        print("Dumping sid info on {}".format(args.info))
+        self._parse_sid_header(args.info)
+        pprint(self._header)
+
+
+
 def main():
     """
     Program driver
@@ -231,12 +242,21 @@ def main():
             default='D:\C64Music',
             action='store')
 
+    # Dump info on SID
+    parser.add_argument(
+            '-i', '--info',
+            metavar='FILE',
+            help="Show information on SID file",
+            default=False,
+            action='store')
+
     # Debug mode
     parser.add_argument(
             '-d', '--debug',
             help="output debugging info",
             default=False,
             action='store_true')
+
     # Load address, 0 = unspecified
     parser.add_argument(
             '-l', '--load',
@@ -244,6 +264,7 @@ def main():
             type=lambda x: int(x, 0),
             default=0,
             action='store')
+
     # End address, 0 = unspecified
     parser.add_argument(
             '-e', '--end',
@@ -273,6 +294,11 @@ def main():
 
     hvsc = HVSCReader(args.path)
     hvsc.debug = args.debug
+
+    if args.info:
+        hvsc.dump_sid_info(args)
+        sys.exit()
+
     hvsc.scan()
     hvsc.filter(args)
 
