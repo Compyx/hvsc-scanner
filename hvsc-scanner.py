@@ -51,6 +51,8 @@ class HVSCReader(dict):
                             # bit 0:    musplayer binary data format
                             #           (0 = built-in player, 1 = MUS data)
                             # bit 1:    PlaySID specific
+    _HDR_SID2 = 0x7a        # second SID address (bits 4-11)
+    _HDR_SID3 = 0x7b        # third SID address (bits 4-11)
 
 
 
@@ -137,6 +139,8 @@ class HVSCReader(dict):
                     self._HDR_NAME + self._HDR_NAME_LEN]
             self._header['author'] = self._data[self._HDR_AUTHOR:
                     self._HDR_AUTHOR + self._HDR_AUTHOR_LEN]
+            self._header['sid2'] = self._data[self._HDR_SID2]
+            self._header['sid3'] = self._data[self._HDR_SID3]
             return self._header
 
 
@@ -192,6 +196,26 @@ class HVSCReader(dict):
         return True
 
 
+    @staticmethod
+    def _sid_address_valid(b):
+        if (b >= 0x42 and b <= 0x7e) or (b >= 0xe0 and b <= 0xfe):
+            return True
+        return False
+
+
+    def _get_num_sids(self, p):
+        """
+        Determine number of SID chips required
+        """
+        sid = self._sids[p]
+
+        if (sid['sid2']) > 0:
+            if sid['sid3'] > 0:
+                return 3
+            else:
+                return 2
+        return 1
+
     def print_sid(self, p):
         sid = self._sids[p]
         print("${:04x}-${:04x}\t{}".format(
@@ -212,6 +236,10 @@ class HVSCReader(dict):
                 if not self._filter_dimensions(p, args.load, args.end, args.size):
                     match = False
 
+            if args.num_sids > 0:
+                n = self._get_num_sids(p)
+                if n != args.num_sids:
+                    match = False
 
             if match:
                 self.print_sid(p)
@@ -276,6 +304,14 @@ def main():
     parser.add_argument(
             '-s', '--size',
             help="set binary size",
+            type=lambda x: int(x, 0),
+            default=0,
+            action='store')
+
+    # Number of SIDs
+    parser.add_argument(
+            '-n', '--num-sids',
+            help='set number of SIDs',
             type=lambda x: int(x, 0),
             default=0,
             action='store')
